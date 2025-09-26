@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""نماذج البيانات الأساسية لخدمة إدارة البنرات"""
+"""
+Banner Service Data Models - Naebak Project
+
+This module defines the core data models and business logic for the Naebak Banner Service.
+It includes models for banner data, statistics, image information, and the main banner service class.
+"""
 
 from dataclasses import dataclass
 from typing import List, Dict, Any, Optional
@@ -10,7 +15,33 @@ import constants
 
 @dataclass
 class BannerData:
-    """نموذج بيانات البنر"""
+    """
+    Represents a banner in the system.
+
+    This dataclass encapsulates all the information needed to display and manage a banner,
+    including its content, positioning, scheduling, and performance metrics.
+
+    Attributes:
+        id (Optional[int]): The unique identifier for the banner.
+        title (str): The title of the banner.
+        description (str): A detailed description of the banner content.
+        image_url (str): The URL of the banner image.
+        link_url (str): The URL that the banner links to when clicked.
+        alt_text (str): Alternative text for accessibility.
+        banner_type (str): The type of banner (e.g., 'hero', 'sidebar', 'footer').
+        position (str): The position where the banner should be displayed.
+        category (str): The category of the banner (e.g., 'informational', 'promotional').
+        status (str): The current status of the banner (e.g., 'draft', 'active', 'expired').
+        priority (int): The priority level for display ordering (1-5, where 1 is highest).
+        governorate (Optional[str]): The specific governorate to target (if any).
+        start_date (Optional[datetime]): When the banner should start being displayed.
+        end_date (Optional[datetime]): When the banner should stop being displayed.
+        created_by (Optional[int]): The ID of the user who created the banner.
+        created_at (Optional[datetime]): When the banner was created.
+        updated_at (Optional[datetime]): When the banner was last updated.
+        click_count (int): The number of times the banner has been clicked.
+        view_count (int): The number of times the banner has been viewed.
+    """
     id: Optional[int] = None
     title: str = ""
     description: str = ""
@@ -32,7 +63,14 @@ class BannerData:
     view_count: int = 0
     
     def to_dict(self) -> Dict[str, Any]:
-        """تحويل البيانات إلى قاموس"""
+        """
+        Converts the banner data to a dictionary format.
+        
+        This method is useful for serialization, API responses, and database operations.
+        
+        Returns:
+            Dict[str, Any]: A dictionary representation of the banner data.
+        """
         return {
             'id': self.id,
             'title': self.title,
@@ -57,7 +95,20 @@ class BannerData:
 
 @dataclass
 class BannerStats:
-    """إحصائيات البنر"""
+    """
+    Represents analytics and performance statistics for a banner.
+
+    This dataclass tracks various metrics to help administrators understand
+    the effectiveness of their banners and make data-driven decisions.
+
+    Attributes:
+        banner_id (int): The ID of the banner these statistics belong to.
+        total_views (int): The total number of times the banner has been viewed.
+        total_clicks (int): The total number of times the banner has been clicked.
+        click_through_rate (float): The percentage of views that resulted in clicks.
+        unique_viewers (int): The number of unique users who have viewed the banner.
+        last_viewed (Optional[datetime]): The timestamp of the most recent view.
+    """
     banner_id: int
     total_views: int = 0
     total_clicks: int = 0
@@ -66,7 +117,12 @@ class BannerStats:
     last_viewed: Optional[datetime] = None
     
     def to_dict(self) -> Dict[str, Any]:
-        """تحويل البيانات إلى قاموس"""
+        """
+        Converts the banner statistics to a dictionary format.
+        
+        Returns:
+            Dict[str, Any]: A dictionary representation of the banner statistics.
+        """
         return {
             'banner_id': self.banner_id,
             'total_views': self.total_views,
@@ -78,7 +134,23 @@ class BannerStats:
 
 @dataclass
 class ImageInfo:
-    """معلومات الصورة"""
+    """
+    Represents metadata about an uploaded image file.
+
+    This dataclass stores technical information about banner images,
+    which is useful for optimization, validation, and display purposes.
+
+    Attributes:
+        filename (str): The generated filename for the uploaded image.
+        original_filename (str): The original filename as uploaded by the user.
+        file_size (int): The size of the image file in bytes.
+        width (int): The width of the image in pixels.
+        height (int): The height of the image in pixels.
+        format (str): The image format (e.g., 'JPEG', 'PNG').
+        mime_type (str): The MIME type of the image file.
+        upload_path (str): The full path where the image is stored.
+        thumbnail_path (Optional[str]): The path to the thumbnail version (if generated).
+    """
     filename: str
     original_filename: str
     file_size: int
@@ -90,7 +162,12 @@ class ImageInfo:
     thumbnail_path: Optional[str] = None
     
     def to_dict(self) -> Dict[str, Any]:
-        """تحويل البيانات إلى قاموس"""
+        """
+        Converts the image information to a dictionary format.
+        
+        Returns:
+            Dict[str, Any]: A dictionary representation of the image information.
+        """
         return {
             'filename': self.filename,
             'original_filename': self.original_filename,
@@ -104,42 +181,71 @@ class ImageInfo:
         }
 
 class BannerService:
-    """خدمة إدارة البنرات"""
+    """
+    Main service class for banner management operations.
+
+    This class encapsulates all the business logic for managing banners,
+    including validation, image processing, analytics, and recommendations.
+    It serves as the primary interface between the API layer and the data layer.
+
+    Attributes:
+        config: The application configuration object.
+        upload_folder (str): The directory where uploaded images are stored.
+        max_file_size (int): The maximum allowed file size for uploads.
+        allowed_extensions (set): The set of allowed file extensions.
+    """
     
     def __init__(self, config):
+        """
+        Initialize the banner service with configuration settings.
+        
+        Args:
+            config: The application configuration object containing upload settings.
+        """
         self.config = config
         self.upload_folder = config.UPLOAD_FOLDER
         self.max_file_size = config.MAX_CONTENT_LENGTH
         self.allowed_extensions = config.ALLOWED_EXTENSIONS
     
     def validate_banner_data(self, banner_data: BannerData) -> List[str]:
-        """التحقق من صحة بيانات البنر"""
+        """
+        Validates banner data according to business rules.
+
+        This method performs comprehensive validation of banner data to ensure
+        it meets all requirements before being saved to the database.
+
+        Args:
+            banner_data (BannerData): The banner data to validate.
+
+        Returns:
+            List[str]: A list of validation error messages. Empty if validation passes.
+        """
         errors = []
         
-        # التحقق من العنوان
+        # Validate title
         if not banner_data.title or len(banner_data.title.strip()) < 3:
             errors.append("العنوان مطلوب ويجب أن يكون 3 أحرف على الأقل")
         
-        # التحقق من النص البديل
+        # Validate alt text (required if admin approval is needed)
         if self.config.REQUIRE_ADMIN_APPROVAL and not banner_data.alt_text:
             errors.append("النص البديل مطلوب")
         
-        # التحقق من نوع البنر
+        # Validate banner type
         valid_types = [bt['type'] for bt in constants.BANNER_TYPES]
         if banner_data.banner_type not in valid_types:
             errors.append("نوع البنر غير صحيح")
         
-        # التحقق من الموضع
+        # Validate position
         valid_positions = [pos['position'] for pos in constants.BANNER_POSITIONS]
         if banner_data.position not in valid_positions:
             errors.append("موضع البنر غير صحيح")
         
-        # التحقق من الفئة
+        # Validate category
         valid_categories = [cat['category'] for cat in constants.BANNER_CATEGORIES]
         if banner_data.category not in valid_categories:
             errors.append("فئة البنر غير صحيحة")
         
-        # التحقق من التواريخ
+        # Validate dates
         if banner_data.start_date and banner_data.end_date:
             if banner_data.start_date >= banner_data.end_date:
                 errors.append("تاريخ البداية يجب أن يكون قبل تاريخ النهاية")
@@ -147,20 +253,31 @@ class BannerService:
         return errors
     
     def validate_image_file(self, file) -> List[str]:
-        """التحقق من صحة ملف الصورة"""
+        """
+        Validates an uploaded image file.
+
+        This method checks the file type, size, and other constraints
+        to ensure the uploaded image is suitable for use as a banner.
+
+        Args:
+            file: The uploaded file object.
+
+        Returns:
+            List[str]: A list of validation error messages. Empty if validation passes.
+        """
         errors = []
         
-        # التحقق من وجود الملف
+        # Check if file exists
         if not file or not file.filename:
             errors.append("لم يتم اختيار ملف")
             return errors
         
-        # التحقق من نوع الملف
+        # Check file type
         if not constants.is_valid_file_type(file.filename):
             errors.append("نوع الملف غير مدعوم")
             return errors
         
-        # التحقق من حجم الملف
+        # Check file size
         file.seek(0, os.SEEK_END)
         file_size = file.tell()
         file.seek(0)
@@ -172,31 +289,43 @@ class BannerService:
         return errors
     
     def process_image(self, file, banner_type: str) -> ImageInfo:
-        """معالجة وتحسين الصورة"""
-        # الحصول على معلومات نوع البنر
+        """
+        Processes and optimizes an uploaded image.
+
+        This method handles image optimization, resizing, and metadata extraction
+        to prepare the image for use as a banner.
+
+        Args:
+            file: The uploaded file object.
+            banner_type (str): The type of banner this image will be used for.
+
+        Returns:
+            ImageInfo: An object containing metadata about the processed image.
+        """
+        # Get banner type information
         banner_info = constants.get_banner_type_info(banner_type)
         
-        # فتح الصورة
+        # Open the image
         image = Image.open(file)
         original_width, original_height = image.size
         
-        # تحسين الصورة إذا كان مطلوباً
+        # Optimize image if required
         if self.config.IMAGE_OPTIMIZATION:
-            # ضغط الصورة
+            # Compress image
             if image.format in ['JPEG', 'JPG']:
                 image = image.convert('RGB')
         
-        # تغيير الحجم إذا كان مطلوباً
+        # Resize if required
         if self.config.AUTO_RESIZE and banner_info:
             recommended_size = banner_info.get('recommended_size', '').split('x')
             if len(recommended_size) == 2:
                 target_width = int(recommended_size[0])
                 target_height = int(recommended_size[1])
                 
-                # تغيير الحجم مع الحفاظ على النسبة
+                # Resize while maintaining aspect ratio
                 image.thumbnail((target_width, target_height), Image.Resampling.LANCZOS)
         
-        # إنشاء معلومات الصورة
+        # Create image information
         image_info = ImageInfo(
             filename=file.filename,
             original_filename=file.filename,
@@ -213,11 +342,24 @@ class BannerService:
     def get_active_banners(self, position: Optional[str] = None, 
                           category: Optional[str] = None,
                           governorate: Optional[str] = None) -> List[BannerData]:
-        """الحصول على البنرات النشطة"""
-        # هذه دالة نموذجية - في التطبيق الفعلي ستتصل بقاعدة البيانات
+        """
+        Retrieves active banners based on filtering criteria.
+
+        This method implements the core business logic for banner selection,
+        including filtering by position, category, and geographic targeting.
+
+        Args:
+            position (Optional[str]): Filter by banner position.
+            category (Optional[str]): Filter by banner category.
+            governorate (Optional[str]): Filter by target governorate.
+
+        Returns:
+            List[BannerData]: A list of active banners matching the criteria.
+        """
+        # This is a sample implementation - in a real application, this would query the database
         banners = []
         
-        # بيانات تجريبية
+        # Sample data
         sample_banners = [
             BannerData(
                 id=1,
@@ -243,7 +385,7 @@ class BannerService:
             )
         ]
         
-        # تطبيق الفلاتر
+        # Apply filters
         for banner in sample_banners:
             if position and banner.position != position:
                 continue
@@ -253,7 +395,7 @@ class BannerService:
                 continue
             banners.append(banner)
         
-        # ترتيب حسب الأولوية
+        # Sort by priority
         banners.sort(key=lambda x: x.priority)
         
         return banners
@@ -261,8 +403,21 @@ class BannerService:
     def get_banner_analytics(self, banner_id: int, 
                            start_date: Optional[datetime] = None,
                            end_date: Optional[datetime] = None) -> BannerStats:
-        """الحصول على إحصائيات البنر"""
-        # بيانات تجريبية
+        """
+        Retrieves analytics data for a specific banner.
+
+        This method calculates and returns performance metrics for a banner,
+        which can be used for reporting and optimization purposes.
+
+        Args:
+            banner_id (int): The ID of the banner to get analytics for.
+            start_date (Optional[datetime]): The start date for the analytics period.
+            end_date (Optional[datetime]): The end date for the analytics period.
+
+        Returns:
+            BannerStats: An object containing the banner's performance statistics.
+        """
+        # Sample data - in a real implementation, this would query analytics data
         stats = BannerStats(
             banner_id=banner_id,
             total_views=1250,
@@ -275,29 +430,66 @@ class BannerService:
         return stats
     
     def create_thumbnail(self, image_path: str, thumbnail_size: tuple = (200, 150)) -> str:
-        """إنشاء صورة مصغرة"""
+        """
+        Creates a thumbnail version of an image.
+
+        This method generates a smaller version of the banner image for use in
+        admin interfaces, previews, and mobile displays.
+
+        Args:
+            image_path (str): The path to the original image.
+            thumbnail_size (tuple): The desired thumbnail dimensions (width, height).
+
+        Returns:
+            str: The path to the created thumbnail image.
+        """
         image = Image.open(image_path)
         image.thumbnail(thumbnail_size, Image.Resampling.LANCZOS)
         
-        # حفظ الصورة المصغرة
+        # Save thumbnail
         thumbnail_path = image_path.replace('.', '_thumb.')
         image.save(thumbnail_path)
         
         return thumbnail_path
     
     def schedule_banner_expiry(self, banner_id: int, expiry_date: datetime):
-        """جدولة انتهاء صلاحية البنر"""
-        # في التطبيق الفعلي، سيتم استخدام Celery أو مجدول مهام آخر
+        """
+        Schedules a banner to expire at a specific date.
+
+        This method sets up automated expiry for banners, ensuring they
+        are automatically deactivated when their campaign period ends.
+
+        Args:
+            banner_id (int): The ID of the banner to schedule for expiry.
+            expiry_date (datetime): When the banner should expire.
+
+        Note:
+            In a real implementation, this would use a task scheduler like Celery.
+        """
+        # In a real application, this would use Celery or another task scheduler
         pass
     
     def get_banner_recommendations(self, user_id: int, 
                                  position: str) -> List[BannerData]:
-        """الحصول على توصيات البنرات للمستخدم"""
-        # خوارزمية بسيطة للتوصيات
+        """
+        Gets personalized banner recommendations for a user.
+
+        This method implements a simple recommendation algorithm that considers
+        banner priority, popularity, and user context to suggest the most
+        relevant banners for display.
+
+        Args:
+            user_id (int): The ID of the user to get recommendations for.
+            position (str): The position where banners will be displayed.
+
+        Returns:
+            List[BannerData]: A list of recommended banners, ordered by relevance.
+        """
+        # Simple recommendation algorithm
         active_banners = self.get_active_banners(position=position)
         
-        # ترتيب حسب الأولوية والشعبية
+        # Sort by priority and popularity
         recommendations = sorted(active_banners, 
                                key=lambda x: (x.priority, -x.view_count))
         
-        return recommendations[:5]  # أفضل 5 توصيات
+        return recommendations[:5]  # Top 5 recommendations
